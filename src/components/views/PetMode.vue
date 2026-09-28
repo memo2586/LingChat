@@ -7,46 +7,61 @@
     class="relative flex h-(--app-height) w-(--app-width) flex-col items-center justify-start
       overflow-hidden bg-transparent transition-none select-none"
   >
-    <!-- DialogueBox 区域 -->
-    <div
-      class="flex w-full shrink-0 flex-col justify-end bg-transparent transition-none"
-      :style="{ height: 'var(--dialog-h)' }"
-    >
-      <PetNotification />
-      <div class="mt-1 flex items-end justify-center">
-        <DialogueBox
-          ref="gameDialogRef"
-          @player-continued="manualTriggerContinue"
-          @dialog-proceed="resetInteraction"
-        />
+    <div class="ml-(--pet-panel-offset) flex w-(--avatar-size) shrink-0 flex-col items-center">
+      <!-- DialogueBox 区域 -->
+      <div
+        class="flex w-full shrink-0 flex-col justify-end bg-transparent transition-none"
+        :style="{ height: 'var(--dialog-h)' }"
+      >
+        <PetNotification />
+        <div class="mt-1 flex items-end justify-center">
+          <DialogueBox
+            ref="gameDialogRef"
+            @player-continued="manualTriggerContinue"
+            @dialog-proceed="resetInteraction"
+          />
+        </div>
+      </div>
+
+      <!-- Avatar 区域 -->
+      <DragArea :isDragging="isDragging">
+        <div
+          ref="avatarContainer"
+          class="flex shrink-0 items-center justify-center bg-transparent transition-all
+            duration-100"
+          :style="{ width: 'var(--avatar-size)', height: 'var(--avatar-size)' }"
+        >
+          <GameRolesStage
+            :hovered="isAvatarHovered"
+            :panel-open="isSidePanelOpen"
+            @avatar-click="handleAvatarClick"
+            @open-settings="handleOpenSettings"
+            @switch-auto-mode="handleSwitchAutoMode"
+            @toggle-side-panel="isSidePanelOpen = !isSidePanelOpen"
+            @exit-pet-mode="handleExitPetMode"
+            @audio-ended="handleAudioFinished"
+            @audio-started="handleAudioStarted"
+          />
+        </div>
+      </DragArea>
+
+      <!-- ChatInput 区域 -->
+      <div
+        ref="chatContainer"
+        class="flex w-full shrink-0 items-start justify-center bg-transparent transition-none"
+        :style="{ height: 'var(--chat-h)' }"
+      >
+        <ChatInput ref="ChatInputRef" :visible="showChatInput" @message-sent="handleMessageSent" />
       </div>
     </div>
 
-    <!-- Avatar 区域 -->
-    <DragArea :isDragging="isDragging">
-      <div
-        ref="avatarContainer"
-        class="flex shrink-0 items-center justify-center bg-transparent transition-all duration-100"
-        :style="{ width: 'var(--avatar-size)', height: 'var(--avatar-size)' }"
-      >
-        <GameRolesStage
-          @avatar-click="handleAvatarClick"
-          @open-settings="handleOpenSettings"
-          @switch-auto-mode="handleSwitchAutoMode"
-          @exit-pet-mode="handleExitPetMode"
-          @audio-ended="handleAudioFinished"
-          @audio-started="handleAudioStarted"
-        />
-      </div>
-    </DragArea>
-
-    <!-- ChatInput 区域 -->
     <div
-      ref="chatContainer"
-      class="flex w-full shrink-0 items-start justify-center bg-transparent transition-none"
-      :style="{ height: 'var(--chat-h)' }"
+      v-show="isSidePanelOpen && isAvatarHovered"
+      ref="sidePanelContainer"
+      class="absolute left-0 z-40"
+      :style="{ top: 'var(--dialog-h)' }"
     >
-      <ChatInput ref="ChatInputRef" :visible="showChatInput" @message-sent="handleMessageSent" />
+      <PetSidePanel :open="isSidePanelOpen" />
     </div>
   </div>
 </template>
@@ -69,7 +84,14 @@
   import DragArea from "../pet/DragArea.vue";
   import GameRolesStage from "../pet/GameRolesStage.vue";
   import PetNotification from "../pet/PetNotification.vue";
-  import { BASE_AVATAR_SIZE, CHAT_BASE_H, DIALOG_MAX_BASE } from "../pet/constants";
+  import PetSidePanel from "../pet/PetSidePanel.vue";
+  import {
+    BASE_AVATAR_SIZE,
+    CHAT_BASE_H,
+    DIALOG_MAX_BASE,
+    SIDE_PANEL_BASE_W,
+    SIDE_PANEL_GAP_BASE,
+  } from "../pet/constants";
 
   const { t } = useI18n();
   const router = useRouter();
@@ -78,12 +100,18 @@
   const uiStore = useUIStore();
 
   const showChatInput = ref(false);
+  const isAvatarHovered = ref(false);
+  const isSidePanelOpen = ref(false);
   const { isDragging, hasFile } = useFileDrop();
 
   const avatarContainer = ref<HTMLElement | null>(null);
   const chatContainer = ref<HTMLElement | null>(null);
+  const sidePanelContainer = ref<HTMLElement | null>(null);
   const gameDialogRef = ref<InstanceType<typeof DialogueBox> | null>(null);
   const ChatInputRef = ref<InstanceType<typeof ChatInput> | null>(null);
+
+  const calcSidePanelOffset = (scale: number) =>
+    Math.round((SIDE_PANEL_BASE_W + SIDE_PANEL_GAP_BASE) * scale);
 
   const appStyleVars = computed(() => {
     const scale = settingsStore.pet?.scale || 1.0;
@@ -95,6 +123,8 @@
       "--avatar-size": `${Math.round(BASE_AVATAR_SIZE * scale)}px`,
       "--chat-h": `${Math.round(CHAT_BASE_H * scale)}px`,
       "--dialog-h": `${Math.round(DIALOG_MAX_BASE * scale)}px`,
+      "--pet-panel-width": `${Math.round(SIDE_PANEL_BASE_W * scale)}px`,
+      "--pet-panel-offset": `${calcSidePanelOffset(scale)}px`,
     };
   });
 
@@ -102,7 +132,10 @@
     const S = Math.round(BASE_AVATAR_SIZE * scale);
     const chatH = Math.round(CHAT_BASE_H * scale);
     const dialogH = Math.round(DIALOG_MAX_BASE * scale);
-    return { width: S, height: S + dialogH + chatH };
+    return {
+      width: S + calcSidePanelOffset(scale),
+      height: S + dialogH + chatH,
+    };
   };
 
   const applyWindowLayout = async () => {
@@ -119,9 +152,25 @@
   let effectUnlisten: (() => void) | null = null;
   let volumeUnlisten: (() => void) | null = null;
   let dialogHistoryUnlisten: (() => void) | null = null;
+  let cursorUnlisten: (() => void) | null = null;
 
   onMounted(async () => {
     const appWindow = getCurrentWindow();
+
+    // 鼠标穿透会让 WebView 收不到 mouseleave；全局坐标仍能可靠判断是否离开画布。
+    cursorUnlisten = await appWindow.listen<{ x: number; y: number }>("pet:cursor", (event) => {
+      const rect = avatarContainer.value?.getBoundingClientRect();
+      const { x, y } = event.payload;
+      const panelOffset = isSidePanelOpen.value
+        ? calcSidePanelOffset(settingsStore.pet?.scale || 1)
+        : 0;
+      isAvatarHovered.value =
+        !!rect &&
+        x >= rect.left - panelOffset &&
+        x <= rect.right &&
+        y >= rect.top &&
+        y <= rect.bottom;
+    });
 
     scaleUnlisten = await appWindow.listen<{ scale: number }>("pet-scale-changed", (event) => {
       const scale = Number(event.payload?.scale);
@@ -184,6 +233,11 @@
         rects.push({ x: r.x, y: r.y, width: r.width, height: r.height });
       }
 
+      if (sidePanelContainer.value && isSidePanelOpen.value && isAvatarHovered.value) {
+        const r = sidePanelContainer.value.getBoundingClientRect();
+        rects.push({ x: r.x, y: r.y, width: r.width, height: r.height });
+      }
+
       // 输入框显示时，加入 solid region
       if (chatContainer.value && showChatInput.value) {
         const r = chatContainer.value.getBoundingClientRect();
@@ -227,6 +281,7 @@
     if (effectUnlisten) effectUnlisten();
     if (volumeUnlisten) volumeUnlisten();
     if (dialogHistoryUnlisten) dialogHistoryUnlisten();
+    if (cursorUnlisten) cursorUnlisten();
 
     if (hitTestInterval !== undefined) {
       window.clearInterval(hitTestInterval);

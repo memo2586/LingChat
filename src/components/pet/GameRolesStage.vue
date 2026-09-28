@@ -1,68 +1,80 @@
 <template>
-  <div class="group relative flex h-full w-full items-center justify-center">
+  <div class="relative flex h-full w-full items-center justify-center">
     <!-- 缩放与尺寸控制层 (无位移) -->
     <div
       class="animate-pet-scale relative transition-transform duration-300 ease-out"
       :style="{ width: frameSize + 'px', height: frameSize + 'px' }"
     >
-      <!-- 设置按钮 -->
-      <button
-        type="button"
-        :aria-label="$t('views.pet.stage.openSettingsAria')"
-        :title="$t('views.pet.stage.settings')"
-        class="absolute top-1 -left-3.5 z-40 flex h-8 w-8 translate-y-2 items-center justify-center
-          rounded-full border border-white/10 bg-neutral-950/60 text-white opacity-0
-          shadow-[0_4px_12px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-all duration-300
-          group-hover:translate-y-0 group-hover:opacity-100 hover:scale-110 hover:bg-cyan-500/80
-          hover:text-white"
-        @click.stop="handleOpenSettings"
-      >
-        <Settings :size="16" />
-      </button>
-
-      <!-- 自动按钮 -->
-      <button
-        type="button"
-        :aria-label="$t('views.pet.stage.openAutoAria')"
-        :title="$t('views.pet.stage.auto')"
-        class="absolute top-10 -left-3.5 z-40 flex h-8 w-8 translate-y-2 items-center justify-center
-          rounded-full border border-white/10 bg-neutral-950/60 text-white opacity-0
-          shadow-[0_4px_12px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-all duration-300
-          group-hover:translate-y-0 group-hover:opacity-100 hover:scale-110 hover:bg-cyan-500/80
-          hover:text-white"
-        :class="{ '!border-cyan-400/50 !bg-cyan-500/80': uiStore.autoMode }"
-        @click.stop="handleSwitchAutoMode"
-      >
-        <Play v-if="!uiStore.autoMode" :size="16" />
-        <Pause v-else :size="16" />
-      </button>
-
-      <!-- 返回主页按钮 -->
-      <button
-        type="button"
-        :aria-label="$t('views.pet.stage.backHome')"
-        :title="$t('views.pet.stage.backHome')"
-        class="absolute top-19 -left-3.5 z-40 flex h-8 w-8 translate-y-2 items-center justify-center
-          rounded-full border border-white/10 bg-neutral-950/60 text-white opacity-0
-          shadow-[0_4px_12px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-all duration-300
-          group-hover:translate-y-0 group-hover:opacity-100 hover:scale-110 hover:bg-cyan-500/80
-          hover:text-white"
-        @click.stop="handleExitPetMode"
-      >
-        <LogOut :size="16" />
-      </button>
-
-      <!-- 截图按钮 -->
       <div
-        class="absolute top-28 -left-3.5 z-40 translate-y-2 opacity-0 transition-all duration-300
-          group-hover:translate-y-0 group-hover:opacity-100"
+        class="absolute z-40 flex flex-col"
+        :style="{
+          top: 'calc(4px * var(--pet-ui-scale))',
+          left: 'calc(-14px * var(--pet-ui-scale))',
+          gap: 'calc(4px * var(--pet-ui-scale))',
+        }"
       >
+        <!-- 设置按钮 -->
+        <button
+          type="button"
+          :aria-label="$t('views.pet.stage.openSettingsAria')"
+          :title="$t('views.pet.stage.settings')"
+          class="pet-control"
+          :class="hovered ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'"
+          @click.stop="handleOpenSettings"
+        >
+          <Settings :size="iconSize" />
+        </button>
+
+        <!-- 自动按钮 -->
+        <button
+          type="button"
+          :aria-label="$t('views.pet.stage.openAutoAria')"
+          :title="$t('views.pet.stage.auto')"
+          class="pet-control"
+          :class="[
+            hovered ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0',
+            { '!border-cyan-400/50 !bg-cyan-500/80': uiStore.autoMode },
+          ]"
+          @click.stop="handleSwitchAutoMode"
+        >
+          <Play v-if="!uiStore.autoMode" :size="iconSize" />
+          <Pause v-else :size="iconSize" />
+        </button>
+
+        <!-- 待办与历史面板按钮 -->
+        <button
+          type="button"
+          :aria-label="$t('pet.sidePanel.toggle')"
+          :title="$t('pet.sidePanel.toggle')"
+          :aria-pressed="panelOpen"
+          class="pet-control"
+          :class="[
+            hovered ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0',
+            { '!border-blue-400/70 !bg-blue-500/85': panelOpen },
+          ]"
+          @click.stop="emit('toggle-side-panel')"
+        >
+          <ListTodo :size="iconSize" />
+        </button>
+
+        <!-- 返回主页按钮 -->
+        <button
+          type="button"
+          :aria-label="$t('views.pet.stage.backHome')"
+          :title="$t('views.pet.stage.backHome')"
+          class="pet-control"
+          :class="hovered ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'"
+          @click.stop="handleExitPetMode"
+        >
+          <LogOut :size="iconSize" />
+        </button>
+
+        <!-- 截图按钮 -->
         <button
           type="button"
           :title="titleText"
-          class="flex h-8 w-8 items-center justify-center rounded-full border border-white/10
-            bg-neutral-950/60 text-white shadow-[0_4px_12px_rgba(0,0,0,0.3)] backdrop-blur-xl
-            transition-all duration-300 hover:scale-110 hover:bg-cyan-500/80 hover:text-white"
+          class="pet-control"
+          :class="hovered ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'"
           :style="
             hasScreenshot
               ? { color: 'var(--accent-color)', borderColor: 'var(--accent-color)' }
@@ -71,27 +83,22 @@
           @click.stop="startScreenshot"
           @contextmenu.prevent="clearScreenshot"
         >
-          <Camera :size="16" />
+          <Camera :size="iconSize" />
         </button>
-      </div>
 
-      <!-- 语音输入按钮（与桌面 GameDialog 同源：useAsrInput 共享会话） -->
-      <div
-        class="absolute top-37 -left-3.5 z-40 translate-y-2 opacity-0 transition-all duration-300
-          group-hover:translate-y-0 group-hover:opacity-100"
-      >
+        <!-- 语音输入按钮（与桌面 GameDialog 同源：useAsrInput 共享会话） -->
         <button
           type="button"
           :title="micTitle"
           :disabled="!canStartMic"
-          class="flex h-8 w-8 items-center justify-center rounded-full border border-white/10
-            bg-neutral-950/60 text-white shadow-[0_4px_12px_rgba(0,0,0,0.3)] backdrop-blur-xl
-            transition-all duration-300 hover:scale-110 hover:bg-cyan-500/80 hover:text-white
-            disabled:cursor-not-allowed disabled:opacity-40"
-          :class="{
-            'animate-asr-breathe !border-blue-400/50 !bg-blue-950/40 !text-blue-400':
-              asrInput.phase.value === 'recording',
-          }"
+          class="pet-control disabled:cursor-not-allowed disabled:opacity-40"
+          :class="[
+            hovered ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-2 !opacity-0',
+            {
+              'animate-asr-breathe !border-blue-400/50 !bg-blue-950/40 !text-blue-400':
+                asrInput.phase.value === 'recording',
+            },
+          ]"
           :style="
             !asrInput.phase.value && autoListenOn && !autoListenActive
               ? { color: 'var(--accent-color)', borderColor: 'var(--accent-color)' }
@@ -99,7 +106,7 @@
           "
           @click.stop="toggleRecording"
         >
-          <component :is="micIcon" :size="16" />
+          <component :is="micIcon" :size="iconSize" />
         </button>
       </div>
 
@@ -119,6 +126,7 @@
       <!-- 角色头像 -->
       <RoleAvatar
         v-if="singleRole"
+        :hovered="hovered"
         :key="singleRole.roleId"
         :role="singleRole"
         :live2d-active="live2dActiveRoleIds.has(singleRole.roleId)"
@@ -144,12 +152,13 @@
   import { isAndroid } from "@/utils/platform";
   import RoleAvatar from "./GameRoleAvatar.vue";
   import Live2DStage from "../game/live2d/Live2DStage.vue";
-  import { Play, Pause, Settings, LogOut, Camera, Mic, MicOff } from "lucide-vue-next";
+  import { Play, Pause, Settings, LogOut, Camera, Mic, MicOff, ListTodo } from "lucide-vue-next";
 
   const { t } = useI18n();
   const gameStore = useGameStore();
   const uiStore = useUIStore();
   const settingsStore = useSettingsStore();
+  defineProps<{ hovered: boolean; panelOpen: boolean }>();
 
   const emit = defineEmits([
     "audio-ended",
@@ -157,6 +166,7 @@
     "avatar-click",
     "open-settings",
     "switch-auto-mode",
+    "toggle-side-panel",
     "exit-pet-mode",
   ]);
 
@@ -181,6 +191,7 @@
     const scale = settingsStore.pet?.scale || 1;
     return Math.round(210 * scale);
   });
+  const iconSize = computed(() => Math.round(16 * (settingsStore.pet?.scale || 1)));
 
   // --- 截图 ---
   const {
@@ -311,6 +322,30 @@
 </script>
 
 <style scoped>
+  .pet-control {
+    display: flex;
+    width: calc(32px * var(--pet-ui-scale));
+    height: calc(32px * var(--pet-ui-scale));
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgb(255 255 255 / 10%);
+    border-radius: 9999px;
+    background: rgb(10 10 10 / 60%);
+    color: white;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
+    backdrop-filter: blur(16px);
+    transition:
+      opacity 300ms,
+      translate 300ms,
+      scale 300ms,
+      background-color 300ms;
+  }
+
+  .pet-control:hover {
+    scale: 1.1;
+    background: rgb(6 182 212 / 80%);
+  }
+
   .animate-pet-scale {
     animation: pet-scale-in 0.4s ease-out;
   }

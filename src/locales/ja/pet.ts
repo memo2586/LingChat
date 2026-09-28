@@ -1,4 +1,7 @@
 export default {
+  sidePanel: {
+    toggle: "ToDo・会話履歴パネル",
+  },
   tabs: {
     pet: "ペット設定",
     interaction: "会話履歴",

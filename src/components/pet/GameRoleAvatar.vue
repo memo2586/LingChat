@@ -1,15 +1,12 @@
 <template>
-  <div
-    class="group relative flex h-full w-full items-center justify-center"
-    @click="handleAvatarClick"
-  >
+  <div class="relative flex h-full w-full items-center justify-center" @click="handleAvatarClick">
     <!-- 缩放与尺寸控制层 (无位移) -->
     <div class="relative h-full w-full">
       <!-- 1. 右上角信息铭牌 -->
       <div
-        class="pointer-events-none absolute top-1 -right-4 z-50 flex translate-x-4 flex-col
-          items-start opacity-0 transition-all duration-400 ease-out group-hover:translate-x-0
-          group-hover:opacity-100"
+        class="pointer-events-none absolute top-1 -right-4 z-50 flex flex-col items-start
+          transition-all duration-400 ease-out"
+        :class="hovered ? 'translate-x-0 opacity-100' : 'translate-x-4 opacity-0'"
       >
         <div
           class="rounded-tl-md rounded-br-md bg-cyan-500 px-2 py-0.5 text-[10px] font-black
@@ -118,7 +115,12 @@
   import { useUIStore } from "@/stores/modules/ui/ui";
   import "./avatar-animation.css";
 
-  const props = defineProps<{ role: GameRole; live2dActive?: boolean; live2dFailed?: boolean }>();
+  const props = defineProps<{
+    role: GameRole;
+    hovered: boolean;
+    live2dActive?: boolean;
+    live2dFailed?: boolean;
+  }>();
   const { role } = toRefs(props);
 
   const emit = defineEmits(["avatar-click"]);

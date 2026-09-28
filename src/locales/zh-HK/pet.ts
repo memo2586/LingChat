@@ -1,5 +1,8 @@
 // 繁體中文（香港 · 粵語文體）语言包，由 zh-CN/pet.ts（约 58 条） 翻譯維護
 export default {
+  sidePanel: {
+    toggle: "待辦與歷史面板",
+  },
   tabs: {
     pet: "桌寵設定",
     interaction: "歷史對話",

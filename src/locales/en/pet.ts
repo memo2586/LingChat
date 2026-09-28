@@ -1,5 +1,8 @@
 // English language pack, maintained from zh-CN/pet.ts
 export default {
+  sidePanel: {
+    toggle: "To-Do and Chat History",
+  },
   tabs: {
     pet: "Desktop Pet",
     interaction: "Chat History",

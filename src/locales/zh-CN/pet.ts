@@ -1,4 +1,7 @@
 export default {
+  sidePanel: {
+    toggle: "待办与历史面板",
+  },
   tabs: {
     pet: "桌宠设置",
     interaction: "历史对话",
