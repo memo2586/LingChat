@@ -3,7 +3,7 @@ use std::fs;
 
 use async_trait::async_trait;
 use serde_json::{Value, json};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::AppState;
 use crate::ai_service::proactive_system::types::{TodoGroup, TodoItem, UserScheduleSettings};
@@ -45,6 +45,12 @@ async fn reload_proactive(app: &AppHandle) {
     if let Some(proactive) = &state.proactive_system {
         let mut sys = proactive.lock().await;
         sys.reload().await;
+    }
+}
+
+fn notify_schedule_changed(app: &AppHandle) {
+    if let Err(error) = app.emit("schedules-changed", ()) {
+        tracing::warn!("[ScheduleTool] Failed to notify schedule changes: {error}");
     }
 }
 
@@ -216,6 +222,7 @@ impl Tool for AddTodo {
 
         save_schedule_settings(&settings).map_err(ToolError::Execution)?;
         let app = context.require_app()?;
+        notify_schedule_changed(&app);
         reload_proactive(&app).await;
         Ok(json!({"ok": true, "id": new_id, "group": group_name}))
     }
@@ -290,6 +297,7 @@ impl Tool for UpdateTodo {
 
         save_schedule_settings(&settings).map_err(ToolError::Execution)?;
         let app = context.require_app()?;
+        notify_schedule_changed(&app);
         reload_proactive(&app).await;
         Ok(json!({"ok": true, "id": id, "group": group_name}))
     }
@@ -339,6 +347,7 @@ impl Tool for DeleteTodo {
 
         save_schedule_settings(&settings).map_err(ToolError::Execution)?;
         let app = context.require_app()?;
+        notify_schedule_changed(&app);
         reload_proactive(&app).await;
         Ok(json!({"ok": true, "id": id, "group": group_name}))
     }

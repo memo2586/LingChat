@@ -159,17 +159,27 @@
 
     // 鼠标穿透会让 WebView 收不到 mouseleave；全局坐标仍能可靠判断是否离开画布。
     cursorUnlisten = await appWindow.listen<{ x: number; y: number }>("pet:cursor", (event) => {
-      const rect = avatarContainer.value?.getBoundingClientRect();
+      const avatarRect = avatarContainer.value?.getBoundingClientRect();
       const { x, y } = event.payload;
       const panelOffset = isSidePanelOpen.value
         ? calcSidePanelOffset(settingsStore.pet?.scale || 1)
         : 0;
-      isAvatarHovered.value =
-        !!rect &&
-        x >= rect.left - panelOffset &&
-        x <= rect.right &&
-        y >= rect.top &&
-        y <= rect.bottom;
+      const overAvatarOrPanel =
+        !!avatarRect &&
+        x >= avatarRect.left - panelOffset &&
+        x <= avatarRect.right &&
+        y >= avatarRect.top &&
+        y <= avatarRect.bottom;
+
+      // 输入框显示时，它与下方已有的 solid region 使用同一命中范围。
+      const chatRect = showChatInput.value ? chatContainer.value?.getBoundingClientRect() : null;
+      const overChatInput =
+        !!chatRect &&
+        x >= chatRect.left - 20 &&
+        x <= chatRect.right + 20 &&
+        y >= chatRect.top - 20 &&
+        y <= chatRect.bottom + 20;
+      isAvatarHovered.value = overAvatarOrPanel || overChatInput;
     });
 
     scaleUnlisten = await appWindow.listen<{ scale: number }>("pet-scale-changed", (event) => {

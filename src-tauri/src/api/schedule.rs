@@ -1,6 +1,6 @@
 use crate::AppState;
 use crate::ai_service::proactive_system::types::UserScheduleSettings;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 #[tauri::command]
 pub async fn get_schedules() -> Result<UserScheduleSettings, String> {
@@ -53,6 +53,10 @@ pub async fn save_schedules(app: AppHandle, data: UserScheduleSettings) -> Resul
 
     std::fs::write(&schedules_path, content)
         .map_err(|e| format!("Failed to write schedules.json: {}", e))?;
+
+    if let Err(error) = app.emit("schedules-changed", ()) {
+        tracing::warn!("[ScheduleAPI] Failed to notify schedule changes: {error}");
+    }
 
     tracing::info!(
         "[ScheduleAPI] Schedules saved successfully at {:?}",
